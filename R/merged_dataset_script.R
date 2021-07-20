@@ -21,7 +21,6 @@ library(patchwork)
 library(Seurat)
 library(SoupX)
 library(ggplot2) 
-
 library(ZamanianLabThemes)
 
 # set directories for tBM and utBM data sets
@@ -114,7 +113,7 @@ as.tibble(
   coord_cartesian(ylim=c(0,0.6), xlim=c(0,3))
 
 
-# Identify genes in cells that vary expression in cells (high in some and low in others)
+# Identify genes in cells that vary in expression (high in some and low in others)
 hvfeatures <- FindVariableFeatures(norm, selection.method = "vst", nfeatures = 2000)
 top10 <- head(VariableFeatures(hvfeatures), 10)
 plot1 <- VariableFeaturePlot(hvfeatures)
@@ -129,17 +128,37 @@ scaled <- ScaleData(norm, features = all.genes)
 # Run PCA analysis (linear dimensional reduction) on the scaled data
 PCA <- RunPCA(scaled, features = VariableFeatures(object = hvfeatures))
 
+PCA_plots <- plot_grid(ncol = 3, DimPlot(PCA, reduction = "pca", group.by = "orig.ident", dims = 1:2), DimPlot(PCA, reduction = "pca", group.by = "orig.ident", dims = 3:4), DimPlot(PCA, reduction = "pca", group.by = "orig.ident", dims = 5:6))
+
+
+# Look at the variance explained by each PC to identify if what PCs should be included in downstream annalysis
+ElbowPlot(PCA, reduction = "pca", ndims = 50)
+
+
+
+# clustering the cells
+knn <- FindNeighbors(PCA, dims = 1:10)
+clusters <- FindClusters(knn, resolution = 0.5)
+
+
 
 # UMAP
-UMAP <- RunUMAP(PCA, dims = 1:10)
-UMAP_plot <-DimPlot(UMAP, reduction = "umap")
+UMAP <- RunUMAP(clusters, dims = 1:10)
+UMAP_plot <-DimPlot(UMAP, reduction = "umap", label = TRUE, split.by = "orig.ident")
 
 # tSNE
 tSNE <- RunTSNE(
-  PCA,
+  clusters,
   dims=1:15,
   seed.use = 10403, 
-  perplexity=100
+  perplexity=30
 ) 
 
-DimPlot(tSNE,reduction = "tsne", pt.size = 1) + ggtitle("tSNE with Perplexity 100")
+DimPlot(tSNE,reduction = "tsne", pt.size = 1, split.by = "orig.ident") + ggtitle("tSNE with Perplexity 30")
+
+
+# identify cluster biomarkers 
+markers <- FindAllMarkers(tSNE, only.pos = TRUE, min.pct = 0.1, logfc.threshold = 0.1)
+
+
+
