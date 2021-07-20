@@ -34,8 +34,8 @@ utBM <- Read10X(data.dir.utBM)
 
 
 # create Seurat objects
-tBM <- CreateSeuratObject(counts = tBM, project = "20210413_bma_tBM")
-utBM <- CreateSeuratObject(utBM, project = "20210413_bma_utBM")
+tBM <- CreateSeuratObject(counts = tBM, project = "tBM")
+utBM <- CreateSeuratObject(utBM, project = "utBM")
 
 
 # create merged Seurat object to combine tBM and utBM prior to filtering the dataset
@@ -135,16 +135,15 @@ PCA_plots <- plot_grid(ncol = 3, DimPlot(PCA, reduction = "pca", group.by = "ori
 ElbowPlot(PCA, reduction = "pca", ndims = 50)
 
 
-
 # clustering the cells
 knn <- FindNeighbors(PCA, dims = 1:10)
 clusters <- FindClusters(knn, resolution = 0.5)
 
 
-
 # UMAP
 UMAP <- RunUMAP(clusters, dims = 1:10)
 UMAP_plot <-DimPlot(UMAP, reduction = "umap", label = TRUE, split.by = "orig.ident")
+
 
 # tSNE
 tSNE <- RunTSNE(
@@ -154,11 +153,48 @@ tSNE <- RunTSNE(
   perplexity=30
 ) 
 
-DimPlot(tSNE,reduction = "tsne", pt.size = 1, split.by = "orig.ident") + ggtitle("tSNE with Perplexity 30")
+DimPlot(tSNE,reduction = "tsne", pt.size = 0.5, split.by = "orig.ident", label = TRUE) + ggtitle("tSNE with Perplexity 30")
+
+
+# What cells and how many belong to each cluster in the tSNE? Create table
+tmp <- StashIdent(tSNE, save.name = "my.clusters")                               
+cell.num <- data.frame(tmp@meta.data$my.clusters, tmp@meta.data$orig.ident)   
+
+colnames(cell.num) <- c("cluster", "treatment")
+
+total_by_cluster <- cell.num %>% 
+  group_by(treatment, cluster) %>% 
+  summarise(count = n())
+  
+
+                               
+                               
+                               
+
+# Add number of cells per total cluster to the legend (will not be based on treatment but on the total between the groups)
+cluster.id <- table(tSNE@active.ident)
+ClusterLabels = paste("Cluster", names(cluster.id), paste0("(n = ", cluster.id, ")"))
+
+
+# Order legend labels in plot in the same order as 'clusterLabels'
+ClusterBreaks = names(cluster.id)
+
+TSNEPlot(tSNE,reduction = "tsne", pt.size = 0.5, split.by = "orig.ident", label = TRUE) +
+  scale_colour_discrete(breaks = ClusterBreaks,
+                        labels = ClusterLabels)+
+  labs(x = "tSNE 1",
+       y = "t-SNE 2")
+
+
+
 
 
 # identify cluster biomarkers 
 markers <- FindAllMarkers(tSNE, only.pos = TRUE, min.pct = 0.1, logfc.threshold = 0.1)
+
+
+
+
 
 
 
