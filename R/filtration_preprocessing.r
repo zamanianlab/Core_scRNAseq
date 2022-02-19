@@ -5,7 +5,6 @@
 BiocManager::install("scCB2")
 install.packages("Seurat")
 BiocManager::install("DropletUtils")
-BiocManager::install("scDblFinder")
 install.packages("SoupX")
 
 #Load libraries
@@ -15,19 +14,10 @@ library(cowplot)
 library(DropletUtils)
 library(scCB2)
 library(dplyr)
-library(expss)
-library(multtest)
-library(tidyquant)
-library(SummarizedExperiment)
-library(scDblFinder)
-library(monocle)
 library(methods)
 library(Matrix)
-library(scater)
-library(patchwork)
 library(Seurat)
 library(SoupX)
-library(ggplot2) 
 library(ZamanianLabThemes)
 
 # see package vignettes
@@ -160,7 +150,7 @@ souped_utBM = setDR(souped_utBM, UMAP_DR_utBM, c("RD1", "RD2")) #add DR to the m
 # Estimating the contamination fraction for removal (automated method) (CenGen manually estimated using cell-specific marers and estimated a global contamination fraction of 6.45%)
 souped_tBM = autoEstCont(souped_tBM) #estimated ~10% contamination (rho 0.10)
 
-souped_utBM = autoEstCont(souped_utBM) #estimated ~13% contamination (rho 0.13) but when cluster resolution was set to 0.5 like the tBM the soup was estimated to be 0.8...soo......
+souped_utBM = autoEstCont(souped_utBM) #estimated ~13% contamination (rho 0.13) 
 
 
 
@@ -304,21 +294,30 @@ ggplot(utBM_metadata, aes( x = nCount_RNA, y = nFeature_RNA, color = percent.mt)
 
 
 # Subset each seurat objected on the following parameters:
-tBM_subset <- subset(tBM,
+tBM_subset <- subset(pro_tBM,
                      nCount_RNA < 10000 & 
                        nFeature_RNA < 2500 & 
                        percent.mt < 10 & 
                        Percent.Largest.Gene < 15)
 view(tBM_subset@meta.data)
 
-utBM_subset <- subset(utBM,
+utBM_subset <- subset(pro_utBM,
                       nCount_RNA < 10000 & 
                         nFeature_RNA < 2500 & 
                         percent.mt < 10 & 
                         Percent.Largest.Gene < 15)
 view(utBM_subset@meta.data)
 
+# save RDS files for input into cluster analysis
+saveRDS(tBM_subset, "~/Box/ZamanianLab/SeqLibraries/Mapping/singlecell/scRNAesq_Bma_multi/RDS_objects/scmulti_tBM_subset.rds")
+saveRDS(utBM_subset, "~/Box/ZamanianLab/SeqLibraries/Mapping/singlecell/scRNAesq_Bma_multi/RDS_objects/scmulti_utBM_subset.rds")
+saveRDS(pro_tBM, "~/Box/ZamanianLab/SeqLibraries/Mapping/singlecell/scRNAesq_Bma_multi/RDS_objects/scmulti_pro_tBM.rds")
+saveRDS(pro_utBM, "~/Box/ZamanianLab/SeqLibraries/Mapping/singlecell/scRNAesq_Bma_multi/RDS_objects/scmulti_pro_utBM.rds")
+saveRDS(utBM, "~/Box/ZamanianLab/SeqLibraries/Mapping/singlecell/scRNAesq_Bma_multi/RDS_objects/scmulti_utBM.rds")
+saveRDS(tBM, "~/Box/ZamanianLab/SeqLibraries/Mapping/singlecell/scRNAesq_Bma_multi/RDS_objects/scmulti_tBM.rds")
+
 
 # use the tBM_subset and utBM_subsest seurat objects for further normalization and selection of informative genes 
+
 
 
